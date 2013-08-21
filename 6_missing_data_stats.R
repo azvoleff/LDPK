@@ -38,4 +38,5 @@ for (n in 1:nrow(image_list)) {
                                           sum(cloud_crop_masked_stats) * 100)
 }
 
-write.csv(image_list, file='H:/Data/TEAM/VB/Rasters/Landsat/image_list.csv')
+write.csv(image_list, file='H:/Data/TEAM/VB/Rasters/Landsat/image_list.csv', 
+          row.names=FALSE)
