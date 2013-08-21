@@ -5,7 +5,12 @@ library(ggplot2)
 library(gridExtra) # for 'unit' function
 library(plyr) # for 'join' function
 
+PLOT_WIDTH <- 3.25
+PLOT_HEIGHT <- 3.25
+DPI <- 300
+
 image_list <- read.csv('H:/Data/TEAM/VB/Rasters/Landsat/image_list.csv')
+out_folder <- 'H:/Data/TEAM/VB/Rasters/Landsat'
 zoi <- readOGR('H:/Data/TEAM/VB/Shapefiles', 'VB_ZOI_GEO')
 
 lin_stretch <- function(image, pct=2) {
@@ -26,15 +31,22 @@ lin_stretch <- function(image, pct=2) {
 }
 
 for (n in 1:nrow(image_list)) {
-    base_in_file <- sub('.hdf$', '', image_list[n, ]$file_path)
-    base_out_file <- sub('orig', 'proc', base_in_file)
+    in_file_prefix <- sub('.hdf$', '', image_list[n, ]$file_path)
+    out_file_prefix <- file.path(out_folder, basename(in_file_prefix))
+    print(paste('Processing', in_file_prefix))
 
-    print(paste('Processing', base_in_file, sep=''))
+    image_short_name <- regmatches(in_file_prefix,
+               regexpr('[0-9]{4}_[0-9]{3}_((LT4)|(LT5)|(LE7))', 
+                       in_file_prefix))
 
-    fc <- stack(paste(base_in_file, '_band4.bsq', sep=''),
-                         paste(base_in_file, '_band3.bsq', sep=''),
-                         paste(base_in_file, '_band2.bsq', sep=''))
-    fc <- aggregate(fc, fact=2)
+    fc <- stack(paste(in_file_prefix, '_band4.bsq', sep=''),
+                         paste(in_file_prefix, '_band3.bsq', sep=''),
+                         paste(in_file_prefix, '_band2.bsq', sep=''))
+    # Resample the image based on the browse output DPI and image size. No need 
+    # to stretch the entire Landsat image just to output a small browse image.
+    agg_fact <- floor(max(nrow(fc), ncol(fc)) / (DPI * max(PLOT_WIDTH, 
+                                                           PLOT_HEIGHT)))
+    fc <- aggregate(fc, fact=agg_fact)
     fc_zoi <- spTransform(zoi, CRS(proj4string(fc)))
     fc_crop <- crop(fc, fc_zoi)
     fc_crop_masked <- mask(fc_crop, fc_zoi)
@@ -74,6 +86,7 @@ for (n in 1:nrow(image_list)) {
               plot.background=element_blank(), axis.ticks=element_blank(),
               plot.margin=unit(c(.1, .1, .1, .1), 'cm'))
         #geom_path(data=fc_zoi.df, aes(long, lat), color='blue', size=1)
-    ggsave(paste(base_out_file, '_browse_image.png', sep=''), width=3.25, 
-           height=3.25, dpi=300)
+    ggsave(paste(file.path(out_folder, image_short_name), '_browse.png', 
+                 sep=''), width=PLOT_WIDTH, height=PLOT_HEIGHT, dpi=DPI)
+
 }
