@@ -10,7 +10,7 @@ from osgeo import gdal
 from osgeo import osr
 
 def main():
-    parser = argparse.ArgumentParser(description='Catalog a folder of Landsat images and save the list to a CSV file')
+    parser = argparse.ArgumentParser(description='Convert a list of Landsat HDF files to the default ENVI binary format (band sequential).')
     parser.add_argument("image_list_file", metavar="image_list", type=str, default=None,
             help='Path to a CSV file listing Landsat images (in format output from catalog_Landsat.py)')
     args = parser.parse_args()
@@ -38,11 +38,11 @@ def main():
         for SubDataset in SubDatasets:
             ds = gdal.Open(SubDataset)
             bandname = bandname_re.search(SubDataset).group()
-            src_band_array = ds.GetRasterBand(1).ReadAsArray()
             dst_path = os.path.join(image_base_path + '_' + bandname + '.bsq')
             if os.path.isfile(dst_path):
                 print 'Skipping %s - file already exists'%dst_path
                 continue
+            src_band_array = ds.GetRasterBand(1).ReadAsArray()
             driver = gdal.GetDriverByName('ENVI')
             geo = ds.GetGeoTransform()  # get the datum of the original image
             proj = ds.GetProjection()   # get the projection of the original image

@@ -6,7 +6,7 @@ import argparse # Requires Python 2.7 or above
 import tarfile
 
 def main():
-    parser = argparse.ArgumentParser(description='Extract a folder of Landsat images and convert from HDF to the default ENVI binary format (band sequential).')
+    parser = argparse.ArgumentParser(description='Extract a folder of Landsat images into a folder tree organized by image date.')
     parser.add_argument("in_folder", metavar="in", type=str, default=None,
             help='Path to a folder of .tar.gz Landsat surface reflectance images')
     parser.add_argument("out_folder", metavar="out", type=str, default=None,
