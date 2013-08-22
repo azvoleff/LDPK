@@ -24,11 +24,19 @@ def main():
             help='Path to a CSV file listing Landsat images (in format output from catalog_Landsat.py)')
     args = parser.parse_args()
 
-    bands = ['band1', 'band2', 'band3', 'band4', 'band5', 'band7']
+    bands = ['band1', 'band2', 'band3', 'band4', 'band5', 'band7',
+             'adjacent_cloud_QA', 'cloud_shadow_QA', 'cloud_QA', 'fill_QA']
+    # num_new_bands is used in creating the output file to allow for the
+    # extra data quality bands (the combined cloud mask and total missing 
+    # masks).
+    num_new_bands = 2
 
     image_list_file = args.image_list_file
+    base, ext = os.path.splitext(image_list_file)
+    if not ext.lower() == '.csv':
+        raise IOError('image_list must be a csv file')
     if not os.path.isfile(image_list_file):
-        raise IOError('image_list must be a CSV file')
+        raise IOError('%s not found'%image_list_file)
 
     image_list = []
     with open(image_list_file, 'rb') as f:
@@ -40,23 +48,37 @@ def main():
     bandname_re = re.compile('[a-zA-Z0-9_-]*$')
     for image in image_list:
         image_path = image['file_path']
-        image_base_path, ext = os.path.splitext(image_path)
-        image_basename, ext = os.path.splitext(image['file'])
         print 'Processing %s'%image_path
+
+        # Figure out the output filename, saving the output in a 'proc' folder 
+        # (for processed) in the folder one above the 'orig' folder that the 
+        # original images are stored in.
+        image_base, ext = os.path.splitext(image_path)
+        in_base_path, in_base_filename = os.path.split(image_base)
+        in_prefix, orig_dir = os.path.split(in_base_path)
+        if orig_dir != 'orig':
+            raise IOError('Folder layout does not match folder structure')
+        out_path = os.path.join(in_prefix, 'proc')
+        if not os.path.exists(out_path):
+            os.mkdir(out_path)
+        out_filename = in_base_filename + '.bsq'
+        dst_path = os.path.join(out_path, out_filename)
 
         in_ds = gdal.Open(image_path)
         SubDatasets = [x[0] for x in in_ds.GetSubDatasets()]
 
         # Setup the destination raster
-        dst_path = os.path.join(image_base_path + '_bands.bsq')
         driver = gdal.GetDriverByName('ENVI')
         # if os.path.isfile(dst_path):
         #     print 'Skipping %s - file already exists'%dst_path
         #     continue
         # Load the band1 subdataset to pull the georeferencing from it
         band1_ds = gdal.Open(subdataset_search(in_ds.GetSubDatasets(), 'band1'))
-        dst_ds = driver.Create(dst_path, band1_ds.RasterXSize, band1_ds.RasterYSize, 6, gdal.GDT_Float32)
+        band1 = band1_ds.GetRasterBand(1)
+        dst_ds = driver.Create(dst_path, band1_ds.RasterXSize, 
+                band1_ds.RasterYSize, len(bands) + num_new_bands, band1.DataType)
         src_srs = osr.SpatialReference()
+        src_gt = band1_ds.GetGeoTransform()
         src_srs.ImportFromWkt(band1_ds.GetProjectionRef())
         # Setup output spatial reference
         # Make CRS user name:
@@ -69,6 +91,8 @@ def main():
         dst_srs.SetUTM(src_srs.GetUTMZone())
         dst_ds.SetProjection(dst_srs.ExportToWkt())
         dst_ds.SetMetadata(in_ds.GetMetadata())
+        dst_ds.SetGeoTransform(src_gt)
+        band1_ds = None
         band1 = None
 
         # Note that band_num is the band index in the NEW raster
@@ -88,48 +112,58 @@ def main():
             dst_band = dst_ds.GetRasterBand(band_num)
             dst_band.WriteArray(src_band_array)
             dst_band.SetMetadata(in_sub_ds.GetMetadata())
-            dst_band.SetDescription(dst_band.GetMetadataItem('long_name'))
+            long_band_name = dst_band.GetMetadataItem('long_name').replace(' ', '_')
+            dst_band.SetDescription(long_band_name)
+            NoDataValue = dst_band.GetMetadataItem('_FillValue')
+            if NoDataValue: dst_band.SetNoDataValue(float(NoDataValue))
             in_sub_ds = None
             band_num += 1
-        dst_band = None
-        dst_ds = None
+            src_band = None
+            dst_band = None
 
         # Calculate combined cloud mask
-        print 'Writing cloud mask'
+        print 'Calculating cloud mask'
         cloud_QA_ds = gdal.Open(subdataset_search(in_ds.GetSubDatasets(), 'cloud_QA'))
         cloud_QA = cloud_QA_ds.GetRasterBand(1).ReadAsArray()
         cloud_shadow_QA_ds = gdal.Open(subdataset_search(in_ds.GetSubDatasets(), 'cloud_shadow_QA'))
         cloud_shadow_QA = cloud_shadow_QA_ds.GetRasterBand(1).ReadAsArray()
+        cloud_shadow_QA_ds = None
         adjacent_cloud_QA_ds = gdal.Open(subdataset_search(in_ds.GetSubDatasets(), 'adjacent_cloud_QA'))
         adjacent_cloud_QA = adjacent_cloud_QA_ds.GetRasterBand(1).ReadAsArray()
+        adjacent_cloud_QA_ds = None
         cloud_mask = np.zeros(np.shape(cloud_QA))
         cloud_mask[cloud_QA == 255] = 255
         cloud_mask[cloud_shadow_QA == 255] = 255
         cloud_mask[adjacent_cloud_QA == 255] = 255
         # Write combined cloud mask
-        cloud_path = os.path.join(image_base_path + '_cloud_mask.bsq')
-        driver = gdal.GetDriverByName('ENVI')
-        cloud_ds = driver.CreateCopy(cloud_path, cloud_QA_ds)
-        cloud_ds.SetProjection(dst_srs.ExportToWkt())
-        cloud_ds.SetMetadata(in_ds.GetMetadata())
-        cloud_band = cloud_ds.GetRasterBand(1)
+        print 'Writing cloud mask'
+        cloud_band = dst_ds.GetRasterBand(band_num)
         cloud_band.WriteArray(cloud_mask)
-        cloud_ds = None
+        cloud_band.SetMetadata(cloud_QA_ds.GetMetadata())
+        cloud_band.SetDescription('combined_cloud_mask')
+        NoDataValue = cloud_band.GetMetadataItem('_FillValue')
+        if NoDataValue: cloud_band.SetNoDataValue(float(NoDataValue))
+        band_num += 1
+        cloud_QA_ds = None
 
-        # Write missing data file
-        print 'Writing fill_QA file'
+        # Calculate combined cloud mask
+        print 'Calculating total missing data (cloud and SLC gaps)'
         fill_QA_ds = gdal.Open(subdataset_search(in_ds.GetSubDatasets(), 'fill_QA'))
         fill_QA = fill_QA_ds.GetRasterBand(1).ReadAsArray()
-        fill_path = os.path.join(image_base_path + '_fill_mask.bsq')
-        driver = gdal.GetDriverByName('ENVI')
-        fill_ds = driver.CreateCopy(fill_path, fill_QA_ds)
-        fill_ds.SetProjection(dst_srs.ExportToWkt())
-        fill_ds.SetMetadata(in_ds.GetMetadata())
-        fill_band = fill_ds.GetRasterBand(1)
-        fill_band.WriteArray(fill_QA)
-        fill_ds = None
+        missing_mask = cloud_mask
+        missing_mask[fill_QA == 255] = 255
+        print 'Writing total missing data (cloud and SLC gaps)'
+        missing_band = dst_ds.GetRasterBand(band_num)
+        missing_band.WriteArray(missing_mask)
+        missing_band.SetMetadata(fill_QA_ds.GetMetadata())
+        missing_band.SetDescription('missing_mask_(cloud+gap)')
+        NoDataValue = missing_band.GetMetadataItem('_FillValue')
+        if NoDataValue: missing_band.SetNoDataValue(float(NoDataValue))
+        band_num += 1
+        fill_QA_ds = None
 
         in_ds = None
+        dst_ds = None
 
 if __name__ == "__main__":
     sys.exit(main())
