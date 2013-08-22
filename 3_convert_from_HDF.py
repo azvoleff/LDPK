@@ -62,21 +62,23 @@ def main():
         out_path = os.path.join(in_prefix, 'proc')
         if not os.path.exists(out_path):
             os.mkdir(out_path)
-        out_filename = in_base_filename + '.bsq'
-        dst_path = os.path.join(out_path, out_filename)
+        out_image_filename = in_base_filename + '.bsq'
+        out_metadata_filename = in_base_filename + '.txt'
+        dst_image_file = os.path.join(out_path, out_image_filename)
+        dst_metadata_file = os.path.join(out_path, out_metadata_filename)
 
         in_ds = gdal.Open(image_path)
         SubDatasets = [x[0] for x in in_ds.GetSubDatasets()]
 
         # Setup the destination raster
         driver = gdal.GetDriverByName('ENVI')
-        # if os.path.isfile(dst_path):
-        #     print 'Skipping %s - file already exists'%dst_path
+        # if os.path.isfile(dst_image_file):
+        #     print 'Skipping %s - file already exists'%dst_image_file
         #     continue
         # Load the band1 subdataset to pull the georeferencing from it
         band1_ds = gdal.Open(subdataset_search(in_ds.GetSubDatasets(), 'band1'))
         band1 = band1_ds.GetRasterBand(1)
-        dst_ds = driver.Create(dst_path, band1_ds.RasterXSize, 
+        dst_ds = driver.Create(dst_image_file, band1_ds.RasterXSize, 
                 band1_ds.RasterYSize, len(bands) + num_new_bands, band1.DataType)
         src_srs = osr.SpatialReference()
         src_gt = band1_ds.GetGeoTransform()
@@ -95,6 +97,14 @@ def main():
         dst_ds.SetGeoTransform(src_gt)
         band1_ds = None
         band1 = None
+
+        # Also dump the main HDF metadata to a text file:
+        metadata_fid = open(dst_metadata_file, 'w')
+        metadata = in_ds.GetMetadata()
+        metadata_fid.write('item,value\n')
+        for key, value in metadata.items():
+            metadata_fid.write('"' + key + '","' + value + '"\n')
+        metadata_fid.close()
 
         # Note that band_num is the band index in the NEW raster
         band_num = 1
