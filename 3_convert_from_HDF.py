@@ -20,7 +20,8 @@ def subdataset_search(SubDatasets, search_string):
 
 def main():
     parser = argparse.ArgumentParser(description='Convert a list of Landsat HDF files to the default ENVI binary format (band sequential).')
-    parser.add_argument("image_list_file", metavar="image_list", type=str, default=None,
+    parser.add_argument("image_list_file", metavar="image_list", type=str, 
+            default=None,
             help='Path to a CSV file listing Landsat images (in format output from catalog_Landsat.py)')
     args = parser.parse_args()
 
@@ -156,7 +157,7 @@ def main():
         missing_band = dst_ds.GetRasterBand(band_num)
         missing_band.WriteArray(missing_mask)
         missing_band.SetMetadata(fill_QA_ds.GetMetadata())
-        missing_band.SetDescription('missing_mask_(cloud+gap)')
+        missing_band.SetDescription('missing_mask')
         NoDataValue = missing_band.GetMetadataItem('_FillValue')
         if NoDataValue: missing_band.SetNoDataValue(float(NoDataValue))
         band_num += 1
