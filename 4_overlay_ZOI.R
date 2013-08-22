@@ -9,7 +9,7 @@ PLOT_WIDTH <- 3.25
 PLOT_HEIGHT <- 3.25
 DPI <- 300
 
-image_list <- read.csv('H:/Data/TEAM/VB/Rasters/Landsat/image_list.csv')
+image_list <- read.csv('H:/Data/TEAM/VB/Rasters/Landsat/image_list_pruned.csv')
 out_folder <- 'H:/Data/TEAM/VB/Rasters/Landsat'
 zoi <- readOGR('H:/Data/TEAM/VB/Shapefiles', 'VB_ZOI_GEO')
 
@@ -31,17 +31,21 @@ lin_stretch <- function(image, pct=2) {
 }
 
 for (n in 1:nrow(image_list)) {
-    in_file_prefix <- sub('.hdf$', '', image_list[n, ]$file_path)
-    out_file_prefix <- file.path(out_folder, basename(in_file_prefix))
-    print(paste('Processing', in_file_prefix))
+    in_prefix <- sub('.hdf$', '', image_list[n, ]$file_path)
+    out_prefix <- sub('orig', 'proc', in_prefix)
+    print(paste('Processing', in_prefix))
 
-    image_short_name <- regmatches(in_file_prefix,
+    image_short_name <- regmatches(in_prefix,
                regexpr('[0-9]{4}_[0-9]{3}_((LT4)|(LT5)|(LE7))', 
-                       in_file_prefix))
+                       in_prefix))
 
-    fc <- stack(paste(in_file_prefix, '_band4.bsq', sep=''),
-                         paste(in_file_prefix, '_band3.bsq', sep=''),
-                         paste(in_file_prefix, '_band2.bsq', sep=''))
+    full_stack <- brick(paste(out_prefix, '.bsq', sep=''))
+    names(full_stack) <- get_band_names(paste(out_prefix, '.hdr', sep=''))
+
+    fc <- brick(full_stack$band_4_reflectance,
+                full_stack$band_3_reflectance,
+                full_stack$band_2_reflectance)
+
     # Resample the image based on the browse output DPI and image size. No need 
     # to stretch the entire Landsat image just to output a small browse image.
     agg_fact <- floor(max(nrow(fc), ncol(fc)) / (DPI * max(PLOT_WIDTH, 
