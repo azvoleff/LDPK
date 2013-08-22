@@ -51,7 +51,6 @@ def main():
             else:
                 print 'Skipping "%s". Cannot determine sensor from folder name.'%outer_item
                 continue
-
             # Below is from http://bit.ly/17khclI
             dt = datetime.datetime.strptime(year + julian_day, '%Y%j')
             tt = dt.timetuple()
