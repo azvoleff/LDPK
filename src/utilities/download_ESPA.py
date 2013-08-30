@@ -110,7 +110,7 @@ def main():
             failures += 1
         print
 
-    print '%s files succeeded. %s files skipped. %s files failed.'%(successes, skips, failures)
+    print '%s files succeeded, %s files skipped, %s files failed.'%(successes, skips, failures)
 
 if __name__ == "__main__":
     sys.exit(main())
