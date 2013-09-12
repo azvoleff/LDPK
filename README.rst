@@ -32,7 +32,7 @@ _______________________________________________________________________________
 | Tropical Ecology Assessment and Monitoring (TEAM) Network
 | Conservation International
 | 2011 Crystal Dr. Suite 500
-| Arlington, Virginia 22202
+| Arlington, VA 22202
 | USA
 
 Email: azvoleff@conservation.org
