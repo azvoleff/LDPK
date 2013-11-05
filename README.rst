@@ -23,8 +23,21 @@ The toolkit is still under active development. Follow the `TEAM website
 <http://www.teamnetwork.org/>`_ for news, and the `toolkit project page on 
 github
 <https://github.com/azvoleff/teampy>`_ for the latest version of the code.
- 
-Author Contact Information
+
+Package Installation
+_______________________________________________________________________________
+The easiest way to install the (beta version) of the ``teampy`` package is 
+using git and `pip <https://pypi.python.org/pypi/pip>`_. To directly install 
+the development source from github. In a console window, type
+
+.. code::
+
+   pip install -e git+https://github.com/azvoleff/teampy.git#egg=teampy
+
+and the latest version of the ``teampy`` package will be downloaded from github 
+and installed.
+
+Contact Information
 _______________________________________________________________________________
 
 | Alex Zvoleff
