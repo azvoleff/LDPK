@@ -36,7 +36,7 @@ the development source from github. In a console window, type
 
 .. code::
 
-   pip install -e git+https://github.com/azvoleff/teampy.git#egg=teampy
+   pip install git+https://github.com/azvoleff/teampy.git#egg=teampy
 
 and the latest version of the ``teampy`` package will be downloaded from github 
 and installed.
