@@ -2,6 +2,10 @@
 TEAM Data Processing Tools (Python)
 ===============================================================================
 
+.. image:: https://travis-ci.org/azvoleff/teampy.png
+    :alt: Build Status
+    :target: https://travis-ci.org/azvoleff/teampy
+
 Overview
 _______________________________________________________________________________
 
