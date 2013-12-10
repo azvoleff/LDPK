@@ -10,7 +10,7 @@ python:
     - "pypy"
 
 before_install:
-    - sudo apt-get install -qq python-numpy python-scipy python-matplotlib python-gdal python3-numpy python3-matplotlib
+    - sudo apt-get install -qq python-numpy python-matplotlib python3-numpy python3-matplotlib python-gdal
 
 install:
     - pip install .
