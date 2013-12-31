@@ -143,9 +143,9 @@ def main():
         adjacent_cloud_QA = adjacent_cloud_QA_ds.GetRasterBand(1).ReadAsArray()
         adjacent_cloud_QA_ds = None
         cloud_mask = np.ones(np.shape(cloud_QA))
-        cloud_mask[cloud_QA == 255] = 1
-        cloud_mask[cloud_shadow_QA == 255] = 1
-        cloud_mask[adjacent_cloud_QA == 255] = 1
+        cloud_mask[cloud_QA == 255] = 0
+        cloud_mask[cloud_shadow_QA == 255] = 0
+        cloud_mask[adjacent_cloud_QA == 255] = 0
         # Write combined cloud mask
         print 'Writing cloud mask'
         cloud_band = dst_ds.GetRasterBand(band_num)
@@ -162,7 +162,7 @@ def main():
         fill_QA_ds = gdal.Open(subdataset_search(in_ds.GetSubDatasets(), 'fill_QA'))
         fill_QA = fill_QA_ds.GetRasterBand(1).ReadAsArray()
         missing_mask = np.ones(np.shape(fill_QA))
-        missing_mask[fill_QA == 255] = 1
+        missing_mask[fill_QA == 255] = 0
         print 'Writing total missing data (cloud and SLC gaps)'
         missing_band = dst_ds.GetRasterBand(band_num)
         missing_band.WriteArray(missing_mask)
