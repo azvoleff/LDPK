@@ -58,7 +58,7 @@ def main():
         in_base_path, in_base_filename = os.path.split(image_base)
         in_prefix, orig_dir = os.path.split(in_base_path)
         if orig_dir != 'orig':
-            raise IOError('Folder layout does not match folder structure')
+            raise IOError('Folder layout does not match expected folder structure')
         out_path = os.path.join(in_prefix, 'proc')
         if not os.path.exists(out_path):
             os.mkdir(out_path)
