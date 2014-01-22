@@ -7,7 +7,7 @@ TEAM Data Processing Tools (Python)
     :target: https://travis-ci.org/azvoleff/teampy
 
 **NOTE: the teampy package is no longer required for TEAM remote sensing data 
-analysis. See** `teamr<http://github.com/azvoleff/teamr>`_.
+analysis. See** `teamr <http://github.com/azvoleff/teamr>`_.
 
 Overview
 _______________________________________________________________________________
